@@ -1,2 +1,6 @@
-html, body { height: 100%; margin: 0; }
-#viewport { position: relative; height: 100%; background: #1d1f20; }
+html, body, #viewport { margin: 0; background: #171717; height: 100%; }
+.pjs-meta { color: #fff; }
+canvas { position: absolute; top: 0; left: 0; right: 0; bottom: 0; }
+body.before-game:after {
+    content: 'press "z" to fire';
+}

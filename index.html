@@ -1,12 +1,16 @@
-<!DOCTYPE html>
 <html>
+
 <head>
-  <link href="/css/main.css" rel="stylesheet" type="text/css" />
-  <script data-main="scripts/main" src="/scripts/require.js"></script>
-  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
-  <script src="/scripts/main.js"></script>
+  <link rel="stylesheet" href="/css/main.css">
+  <script src="/scripts/raf.js"></script>
+  <script src="/scripts/physicsjs/dist/physicsjs-full.min.js"></script>
+  <script>if ( window.innerWidth === 0 ) { window.innerWidth = parent.innerWidth; window.innerHeight = parent.innerHeight; }var require = { baseUrl: "/scripts/"};</script>
+  <script src="/scripts/require.js"></script>
 </head>
+
 <body>
   <div id="viewport"></div>
+  <script src="/scripts/main.js"></script>
 </body>
+
 </html>

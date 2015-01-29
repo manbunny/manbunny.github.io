@@ -1,178 +1,202 @@
-$( document ).ready( function(){
+//
+// Supermarket Catastrophy
+//
+// Bullet time is just slowing down the worl,
+// by setting a small "warp" factor with `.warp()`
+// we'll activate bullet time for a little while as
+// the boxes are hit. But you can also activate
+// bullet time by "poking" the screen
+//
 
-  require.config({
-  baseUrl: '/scripts/',
-  packages: [
-    {
-      name: 'physicsjs',
-      location: '/scripts/PhysicsJS-0.7.0/dist/',
-      main: 'physicsjs-full.min'
+document.body.className = 'before-game';
+
+Physics({ timestep: 2 }, function (world) {
+
+    var viewWidth = window.innerWidth
+        ,viewHeight = window.innerHeight
+        // bounds of the window
+        ,viewportBounds = Physics.aabb(0, 0, viewWidth, viewHeight)
+        ,edgeBounce
+        ,renderer
+        ;
+
+    // let's use the pixi renderer
+    require(['/scripts/pixi.js'], function( PIXI ){
+        window.PIXI = PIXI;
+        // create a renderer
+        renderer = Physics.renderer('pixi', {
+            el: 'viewport'
+        });
+
+        // add the renderer
+        world.add(renderer);
+        // render on each step
+        world.on('step', function () {
+            world.render();
+        });
+        // add the interaction
+        world.add(Physics.behavior('interactive', { el: renderer.container }));
+    });
+
+    // constrain objects to these bounds
+    edgeBounce = Physics.behavior('edge-collision-detection', {
+        aabb: viewportBounds
+        ,restitution: 0.2
+        ,cof: 0.8
+    });
+
+    // resize events
+    window.addEventListener('resize', function () {
+
+        viewportBounds = Physics.aabb(0, 0, renderer.width, renderer.height);
+        // update the boundaries
+        edgeBounce.setAABB(viewportBounds);
+
+    }, true);
+
+    // create some bodies
+    // projectile
+    var projectile = [];
+    for ( var i = 0, l = 1; i < l; ++i ){
+    projectile.push( Physics.body('circle', {
+        x: -20 - (i * -10)
+        ,y: viewHeight - 150
+        ,vx: 10
+        ,mass: 10
+        ,radius: 20
+        ,restitution: 0.99
+        ,angularVelocity: 0
+        ,label: 'bullet'
+        ,styles: {
+            fillStyle: '0xd33682'
+            ,lineWidth: 1
+            ,angleIndicator: '0x751b4b'
+        }
+    }));
+  }
+    // squares
+    var squares = [];
+    for ( var i = 0, l = 24; i < l; ++i ){
+
+        squares.push( Physics.body('rectangle', {
+            width: 40
+            ,height: 40
+            ,x: 42 * (i / 6 | 0) + viewWidth - 40 * 8
+            ,y: 40 * (i % 6) + viewHeight - 40 * 6 + 15
+            ,vx: 0
+            ,mass: 12
+            ,cof: 0.99
+            ,restitution: 0.99
+            ,label: 'box'
+            ,styles: {
+                src: '/images/crate.jpg'
+                ,width: 40
+                ,height: 40
+            }
+        }));
     }
-  ]
-});
 
-var colors = [
-  ['0x268bd2', '0x0d394f']
-  ,['0xc93b3b', '0x561414']
-  ,['0xe25e36', '0x79231b']
-  ,['0x6c71c4', '0x393f6a']
-  ,['0x58c73c', '0x30641c']
-  ,['0xcac34c', '0x736a2c']
-];
+    world.add( squares );
+    setTimeout(function(){
 
-function initWorld(world, Physics) {
+        // world.add( projectile );
 
-  // bounds of the window
-  var viewWidth = window.innerWidth
-    ,viewHeight = window.innerHeight
-    ,viewportBounds = Physics.aabb(0, 0, window.innerWidth, window.innerHeight)
-    ,edgeBounce
-    ,renderer
-    ,styles = {
-      'circle': {
-        fillStyle: colors[0][0],
-        lineWidth: 1,
-        strokeStyle: colors[0][1],
-        angleIndicator: colors[0][1]
-      }
-      ,'rectangle': {
-        fillStyle: colors[1][0],
-        lineWidth: 1,
-        strokeStyle: colors[1][1],
-        angleIndicator: colors[1][1]
-      }
-      ,'convex-polygon': {
-        fillStyle: colors[2][0],
-        lineWidth: 1,
-        strokeStyle: colors[2][1],
-        angleIndicator: colors[2][1]
-      }
+    }, 2000);
+
+    // events
+    document.addEventListener('keydown', function( e ){
+        switch ( e.keyCode ){
+            case 38: // up
+
+            break;
+            case 40: // down
+            break;
+            case 37: // left
+
+            break;
+            case 39: // right
+
+            break;
+            case 90: // z
+            world.add( projectile )
+            break;
+        }
+        return false;
+    });
+
+
+    // setup bullet time
+    function bulletTime( active ){
+        // warp is the world warp factor. 0.03 is slowing the world down
+        var warp = active === false ? 1 : 0.03
+            ,tween
+            ;
+
+        tween = new TWEEN.Tween( { warp: world.warp() } )
+            .to( { warp: warp }, 600 )
+            .easing( TWEEN.Easing.Quadratic.Out )
+            .onUpdate( function () {
+                // set the world warp on every tween step
+                world.warp( this.warp );
+            } )
+            .start()
+            ;
     }
-    ;
 
-  // create a renderer
-  renderer = Physics.renderer('pixi', { el: 'viewport', styles: styles });
-  // add the renderer
-  world.add(renderer);
-  // render on each step
-  world.on('step', function () {
-    world.render();
-  });
+    // query to find a collision of the bullet
+    var query = Physics.query({
+        $or: [
+            { bodyA: { label: 'bullet' }, bodyB: { label: 'box' } }
+            ,{ bodyB: { label: 'bullet' }, bodyA: { label: 'box' } }
+        ]
+    });
 
-  // constrain objects to these bounds
-  edgeBounce = Physics.behavior('edge-collision-detection', {
-    aabb: viewportBounds
-    ,restitution: 0.2
-    ,cof: 0.8
-  });
+    // enter bullet time on first collision
+    world.on('collisions:detected', function( data, e ){
+        // find the first collision of the bullet with a box
+        var found = Physics.util.find( data.collisions, query );
+        if ( found ){
+            // enter bullet time
+            bulletTime();
+            // ... for a few seconds
+            setTimeout(function(){
+                bulletTime(false);
+            }, 5000);
+            // stop checking
+            world.off(e.topic, e.handler);
+        }
+    });
 
-  // resize events
-  window.addEventListener('resize', function () {
+    // activate bullet time on pokes
+    world.on({
+        'interact:poke': function( pos ){
+            // activate bullet time
+            bulletTime();
+        }
+        ,'interact:release': function(){
+            // de-activate bullet time
+            bulletTime(false);
+        }
+    });
 
-    // as of 0.7.0 the renderer will auto resize... so we just take the values from the renderer
-    viewportBounds = Physics.aabb(0, 0, renderer.width, renderer.height);
-    // update the boundaries
-    edgeBounce.setAABB(viewportBounds);
+    // add things to the world
+    world.add([
+        Physics.behavior('constant-acceleration')
+        ,Physics.behavior('body-impulse-response')
+        ,Physics.behavior('body-collision-detection')
+        ,Physics.behavior('sweep-prune')
+        ,edgeBounce
+    ]);
 
-  }, true);
+    // For this example, we'll use a tweening engine
+    // to transition in and out of "bullet time".
+    require(['/scripts/tween.js'], function(){
+        // only start the sim when tweening engine is ready
 
-  // add behaviors to the world
-  world.add([
-    Physics.behavior('constant-acceleration')
-    ,Physics.behavior('body-impulse-response')
-    ,Physics.behavior('body-collision-detection')
-    ,Physics.behavior('sweep-prune')
-    ,edgeBounce
-  ]);
-}
-
-function startWorld( world, Physics ){
-  // subscribe to ticker to advance the simulation
-  Physics.util.ticker.on(function( time ) {
-    world.step( time );
-  });
-}
-
-//
-// Add some interaction
-//
-function addInteraction( world, Physics ){
-  // add the mouse interaction
-  world.add(Physics.behavior('interactive', { el: world.renderer().container }));
-  // add some fun extra interaction
-  var attractor = Physics.behavior('attractor', {
-    order: 0,
-    strength: 0.002
-  });
-
-  world.on({
-    'interact:poke': function( pos ){
-      world.wakeUpAll();
-      attractor.position( pos );
-      world.add( attractor );
-    }
-    ,'interact:move': function( pos ){
-      attractor.position( pos );
-    }
-    ,'interact:release': function(){
-      world.wakeUpAll();
-      world.remove( attractor );
-    }
-  });
-}
-
-// helper function (bind "this" to Physics)
-function makeBody( obj ){
-  return this.body( obj.name, obj );
-}
-
-//
-// Add bodies to the world
-//
-function addBodies( world, Physics ){
-  var v = Physics.geometry.regularPolygonVertices;
-  var bodies = [
-    { name: 'circle', x: 100, y: 100, vx: 0.1, radius: 60 }
-    ,{ name: 'rectangle', x: 400, y: 100, vx: -0.1, width: 130, height: 130 }
-    ,{ name: 'convex-polygon', x: 150, y: 300, vertices: v( 5, 90 ) }
-  ];
-
-  // functional programming FTW
-  world.add( bodies.map(makeBody.bind(Physics)) );
-}
-
-//
-// Load the libraries with requirejs and create the simulation
-//
-require([
-  'physicsjs',
-  'pixi'
-], function( Physics, PIXI ){
-  window.PIXI = PIXI;
-
-  var worldConfig = {
-    // timestep
-    timestep: 6,
-    // maximum number of iterations per step
-    maxIPF: 4,
-    // default integrator
-    integrator: 'verlet',
-    // is sleeping disabled?
-    sleepDisabled: false,
-    // speed at which bodies wake up
-    sleepSpeedLimit: 0.1,
-    // variance in position below which bodies fall asleep
-    sleepVarianceLimit: 2,
-    // time (ms) before sleepy bodies fall asleep
-    sleepTimeLimit: 500
-  };
-
-  Physics( worldConfig, [
-    initWorld,
-    addInteraction,
-    addBodies,
-    startWorld
-  ]);
-
-});
+        // subscribe to ticker to advance the simulation
+        Physics.util.ticker.on(function( time ) {
+            TWEEN.update();
+            world.step( time );
+        });
+    });
 });
