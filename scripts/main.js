@@ -1,11 +1,11 @@
 $( document ).ready( function(){
 
   require.config({
-  baseUrl: '/js/',
+  baseUrl: '/scripts/',
   packages: [
     {
       name: 'physicsjs',
-      location: '/PhysicsJS-0.7.0/dist/',
+      location: '/scripts/PhysicsJS-0.7.0/dist/',
       main: 'physicsjs-full.min'
     }
   ]
